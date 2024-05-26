@@ -18,6 +18,7 @@ import { RxGithubLogo } from "react-icons/rx";
 export default function Home() {
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [conversation, setConversation] = useUIState();
   const { continueConversation } = useActions();
@@ -40,27 +41,29 @@ export default function Home() {
 
     setInput("");
     setIsLoading(true);
+    setError(null); // Clear previous errors
 
     setConversation((currentConversation: ClientMessage[]) => [
       ...currentConversation,
       { id: nanoid(), role: "user", display: input },
     ]);
 
-    const message = await continueConversation(input);
+    try {
+      const message = await continueConversation(input);
 
-    if (!message) {
+      if (!message) {
+        throw new Error("No response from server.");
+      }
+
+      setConversation((currentConversation: ClientMessage[]) => [
+        ...currentConversation,
+        message,
+      ]);
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    console.log(message);
-
-    setConversation((currentConversation: ClientMessage[]) => [
-      ...currentConversation,
-      message,
-    ]);
-
-    setIsLoading(false);
   };
 
   const handleReload = () => {
@@ -102,6 +105,12 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded">
+          {error}
+        </div>
+      )}
 
       <form
         className="flex items-center z-30 absolute bottom-0 px-4 py-4 md:pt-8 md:pb-6 md:px-0 left-auto max-w-4xl w-full bg-gradient-to-b from-transparent via-background/80 to-background"
