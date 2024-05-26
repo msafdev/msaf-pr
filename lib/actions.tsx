@@ -35,6 +35,7 @@ export async function continueConversation(
   const history = getMutableAIState();
 
   const result = await streamUI({
+    maxTokens: 100000,
     model: google("models/gemini-1.5-pro-latest"),
     system: `
       You are a general purpose assistant, you can help the user with a variety of tasks. You can tell jokes, give place and song recommendations, and much more. You are a professional, don't use emote.
