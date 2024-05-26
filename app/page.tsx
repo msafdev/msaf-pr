@@ -1,113 +1,138 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+
+import { useActions, useUIState } from "ai/rsc";
+import { nanoid } from "nanoid";
+
+import { ClientMessage } from "@/lib/actions";
+
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/theme-provider";
+
+import { CornerDownLeft, Plus } from "lucide-react";
+import { RxGithubLogo } from "react-icons/rx";
 
 export default function Home() {
+  const [input, setInput] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [conversation, setConversation] = useUIState();
+  const { continueConversation } = useActions();
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    setInput("");
+    setIsLoading(true);
+
+    setConversation((currentConversation: ClientMessage[]) => [
+      ...currentConversation,
+      { id: nanoid(), role: "user", display: input },
+    ]);
+
+    const message = await continueConversation(input);
+
+    if (!message) {
+      setIsLoading(false);
+      return;
+    }
+
+    setConversation((currentConversation: ClientMessage[]) => [
+      ...currentConversation,
+      message,
+    ]);
+
+    setIsLoading(false);
+  };
+
+  const handleReload = () => {
+    window.location.reload();
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="w-full h-[100svh] px-4 flex justify-center relative">
+      <div className="flex gap-x-4 z-30 w-full px-4 py-4 md:pt-6 md:pb-6 md:px-0 max-w-4xl items-center absolute top-0 left-auto bg-gradient-to-b from-background via-background/80 to-transparent">
+        <code className="text-2xl font-bold mr-auto">Pr</code>
+        <Link href="/" target="_blank">
+          <RxGithubLogo className="text-lg" />
+        </Link>
+        <ModeToggle />
+      </div>
+
+      <div className="flex flex-col h-full pt-20 pb-20 md:pt-24 lg:pb-24 overflow-auto no-scrollbar w-full max-w-4xl items-center">
+        {conversation.length === 0 ? (
+          <div className="flex flex-col gap-y-3 h-full items-center justify-center">
+            <code className="text-lg md:text-2xl font-medium text-center">
+              How can I help you today?
+            </code>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-y-4 md:gap-y-6 lg:gap-y-8 w-full">
+            {conversation.map((message: ClientMessage) => (
+              <div
+                key={message.id}
+                className={`flex items-center gap-x-2 [&>svg]:animate-spin ${
+                  message.role === "user"
+                    ? "justify-end text-base md:text-lg text-right bg-secondary text-secondary-foreground border w-fit ml-auto px-4 rounded-full py-1.5"
+                    : "justify-start font-mono text-sm md:text-base"
+                }`}
+              >
+                {message.display}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      <form
+        className="flex items-center z-30 absolute bottom-0 px-4 py-4 md:pt-8 md:pb-6 md:px-0 left-auto max-w-4xl w-full bg-gradient-to-b from-transparent via-background/80 to-background"
+        onSubmit={handleSubmit}
+      >
+        <div className="flex w-full items-center gap-2 bg-foreground px-2 md:px-4 py-1 md:py-3 rounded-full">
+          <Button
+            className="px-2 py-2 bg-transparent hover:bg-transparent hover:text-background text-muted-foreground"
+            type="button"
+            onClick={handleReload}
+            disabled={isLoading}
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            <Plus />
+          </Button>
+          <Input
+            className="bg-transparent text-lg w-full border-0 ring-transparent outline-transparent border-transparent text-background focus-visible:ring-offset-0 focus-visible:ring-0"
+            placeholder="Ask me anything!"
+            type="text"
+            value={input}
+            onChange={(event) => {
+              setInput(event.target.value);
+            }}
+            required
+            disabled={isLoading}
+          />
+          <Button
+            className="px-2 py-2 bg-transparent hover:bg-transparent hover:text-background text-muted-foreground"
+            disabled={isLoading}
+          >
+            <CornerDownLeft />
+          </Button>
         </div>
-      </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      </form>
     </main>
   );
 }
