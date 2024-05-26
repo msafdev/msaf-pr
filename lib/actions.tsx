@@ -24,7 +24,6 @@ export interface ClientMessage {
   id: string;
   role: "user" | "assistant";
   display: ReactNode;
-  
 }
 
 export async function continueConversation(
@@ -47,11 +46,20 @@ export async function continueConversation(
           { role: "assistant", content },
         ]);
       }
-      return (
-        <article className="markdown-container">
-          <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
-        </article>
-      );
+      if (content) {
+        return (
+          <article className="markdown-container">
+            <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+          </article>
+        );
+      } else {
+        return (
+          <p>
+            Something went wrong, please try again later. If the problem
+            persists, please contact the developer.
+          </p>
+        );
+      }
     },
     tools: {
       getJoke: {

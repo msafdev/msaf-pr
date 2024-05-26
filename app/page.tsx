@@ -53,6 +53,8 @@ export default function Home() {
       return;
     }
 
+    console.log(message);
+
     setConversation((currentConversation: ClientMessage[]) => [
       ...currentConversation,
       message,
